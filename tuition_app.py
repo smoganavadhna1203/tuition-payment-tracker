@@ -43,44 +43,46 @@ with tabs[2]:
         else:
             st.warning("⚠️ Please fill in both student name and group.")
 
-    # Edit/Delete Section
+    # Display Student Table
+    st.markdown("### 📋 Registered Students")
+    if os.path.exists(STUDENT_FILE):
+        df_students = pd.read_csv(STUDENT_FILE)
+        if not df_students.empty:
+            st.dataframe(df_students, use_container_width=True)
+        else:
+            st.info("No students registered yet.")
+    else:
+        st.info("No students.csv file found. Please add a student first.")
+
+    # Edit/Delete student
     st.markdown("### ✏️ Edit / ❌ Delete a Student")
     if os.path.exists(STUDENT_FILE):
         df_students = pd.read_csv(STUDENT_FILE)
-        df_students = df_students.reset_index()
-        student_options = [
-            f"{row['index']}: {row['Student Name']} - {row['Class Type']} ({row['Group']})"
-            for _, row in df_students.iterrows()
-        ]
-        selected = st.selectbox("Select a student to edit/delete", ["None"] + student_options)
+        if len(df_students) > 0:
+            student_to_edit = st.selectbox(
+                "Select a student to edit/delete",
+                ["None"] + df_students["Student Name"].tolist()
+            )
 
-        if selected != "None":
-            selected_index = int(selected.split(":")[0])
-            row = df_students.loc[selected_index]
+            if student_to_edit != "None":
+                student_row = df_students[df_students["Student Name"] == student_to_edit].iloc[0]
+                with st.form("edit_student_form"):
+                    new_name = st.text_input("👤 New Name", student_row["Student Name"])
+                    new_class = st.selectbox("📘 Class Type", ["English", "Chess"], index=["English", "Chess"].index(student_row["Class Type"]))
+                    new_group = st.text_input("🏷️ Group", student_row["Group"])
 
-            with st.form("edit_student"):
-                new_name = st.text_input("👤 Student Name", row["Student Name"])
-                new_class = st.selectbox("📘 Class Type", ["English", "Chess"], index=["English", "Chess"].index(row["Class Type"]))
-                new_group = st.text_input("🏷️ Group", row["Group"])
-                col1, col2 = st.columns(2)
-                with col1:
-                    update_btn = st.form_submit_button("✅ Update")
-                with col2:
-                    delete_btn = st.form_submit_button("🗑️ Delete")
+                    col1, col2 = st.columns(2)
+                    update = col1.form_submit_button("✅ Update")
+                    delete = col2.form_submit_button("🗑️ Delete")
 
-            if update_btn:
-                df_students.at[selected_index, "Student Name"] = new_name.strip()
-                df_students.at[selected_index, "Class Type"] = new_class
-                df_students.at[selected_index, "Group"] = new_group.strip()
-                df_students.drop(columns=["index"], inplace=True)
-                df_students.to_csv(STUDENT_FILE, index=False)
-                st.success("✅ Student updated successfully.")
-            if delete_btn:
-                df_students = df_students.drop(index=selected_index).drop(columns=["index"])
-                df_students.to_csv(STUDENT_FILE, index=False)
-                st.warning("🗑️ Student deleted.")
-    else:
-        st.info("No students registered yet.")
+                if update:
+                    df_students.loc[df_students["Student Name"] == student_to_edit, ["Student Name", "Class Type", "Group"]] = [new_name.strip(), new_class, new_group.strip()]
+                    df_students.to_csv(STUDENT_FILE, index=False)
+                    st.success("✅ Student updated successfully.")
+                if delete:
+                    df_students = df_students[df_students["Student Name"] != student_to_edit]
+                    df_students.to_csv(STUDENT_FILE, index=False)
+                    st.warning("🗑️ Student deleted.")
 
 # ─────────────────────────────
 # Tab 1: Add Payment
@@ -158,44 +160,41 @@ with tabs[1]:
 
         st.dataframe(filtered.drop(columns=["Month Paid"]).reset_index(drop=True), use_container_width=True)
 
-        # Edit/Delete Section
+        # Edit/Delete payment
         st.markdown("### ✏️ Edit / ❌ Delete a Payment")
-        editable_df = df.reset_index()  # keep original index
-        payment_options = [
-            f"{row['index']}: {row['Student Name']} - {row['Class Type']} - {row['Date Paid'].strftime('%Y-%m-%d')}"
-            for _, row in editable_df.iterrows()
-        ]
-        selected_payment = st.selectbox("Select a payment to edit/delete", ["None"] + payment_options)
+        if len(df) > 0:
+            payment_to_edit = st.selectbox(
+                "Select a payment to edit/delete",
+                ["None"] + df.index.astype(str).tolist()
+            )
 
-        if selected_payment != "None":
-            idx = int(selected_payment.split(":")[0])
-            row = df.loc[idx]
+            if payment_to_edit != "None":
+                idx = int(payment_to_edit)
+                row = df.loc[idx]
 
-            with st.form("edit_payment"):
-                new_name = st.text_input("👤 Student Name", row["Student Name"])
-                new_class = st.selectbox("📘 Class Type", ["English", "Chess"], index=["English", "Chess"].index(row["Class Type"]))
-                new_group = st.text_input("🏷️ Group", row["Group"])
-                new_amount = st.number_input("💰 Amount (RM)", value=float(row["Amount (RM)"]), format="%.2f")
-                new_date = st.date_input("📅 Date Paid", value=row["Date Paid"])
-                new_notes = st.text_area("📝 Notes", value=row["Notes"])
-                c1, c2 = st.columns(2)
-                with c1:
-                    update_btn = st.form_submit_button("✅ Update")
-                with c2:
-                    delete_btn = st.form_submit_button("🗑️ Delete")
+                with st.form("edit_payment_form"):
+                    new_name = st.text_input("👤 Student Name", row["Student Name"])
+                    new_class = st.selectbox("📘 Class Type", ["English", "Chess"], index=["English", "Chess"].index(row["Class Type"]))
+                    new_group = st.text_input("🏷️ Group", row["Group"])
+                    new_amount = st.number_input("💰 Amount (RM)", value=float(row["Amount (RM)"]), format="%.2f")
+                    new_date = st.date_input("📅 Date Paid", value=row["Date Paid"])
+                    new_notes = st.text_area("📝 Notes", value=row["Notes"])
+                    c1, c2 = st.columns(2)
+                    update_btn = c1.form_submit_button("✅ Update")
+                    delete_btn = c2.form_submit_button("🗑️ Delete")
 
-            if update_btn:
-                df.at[idx, "Student Name"] = new_name.strip()
-                df.at[idx, "Class Type"] = new_class
-                df.at[idx, "Group"] = new_group.strip()
-                df.at[idx, "Amount (RM)"] = new_amount
-                df.at[idx, "Date Paid"] = new_date.strftime("%Y-%m-%d")
-                df.at[idx, "Notes"] = new_notes.strip()
-                df.to_csv(PAYMENT_FILE, index=False)
-                st.success("✅ Payment updated.")
-            if delete_btn:
-                df = df.drop(index=idx).reset_index(drop=True)
-                df.to_csv(PAYMENT_FILE, index=False)
-                st.warning("🗑️ Payment deleted.")
+                if update_btn:
+                    df.at[idx, "Student Name"] = new_name.strip()
+                    df.at[idx, "Class Type"] = new_class
+                    df.at[idx, "Group"] = new_group.strip()
+                    df.at[idx, "Amount (RM)"] = new_amount
+                    df.at[idx, "Date Paid"] = new_date.strftime("%Y-%m-%d")
+                    df.at[idx, "Notes"] = new_notes.strip()
+                    df.to_csv(PAYMENT_FILE, index=False)
+                    st.success("✅ Payment updated.")
+                if delete_btn:
+                    df = df.drop(index=idx).reset_index(drop=True)
+                    df.to_csv(PAYMENT_FILE, index=False)
+                    st.warning("🗑️ Payment deleted.")
     else:
         st.info("No payment records found yet.")
