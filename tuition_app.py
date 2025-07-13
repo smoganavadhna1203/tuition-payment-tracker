@@ -43,12 +43,23 @@ with tabs[2]:
         else:
             st.warning("⚠️ Please fill in both student name and group.")
 
-    # Display Student Table
+    # Display Student Table with Filters
     st.markdown("### 📋 Registered Students")
+
     if os.path.exists(STUDENT_FILE):
         df_students = pd.read_csv(STUDENT_FILE)
+
         if not df_students.empty:
-            st.dataframe(df_students, use_container_width=True)
+            class_filter = st.selectbox("📘 Filter by Class Type", ["All"] + sorted(df_students["Class Type"].unique()))
+            group_filter = st.selectbox("🏷️ Filter by Group", ["All"] + sorted(df_students["Group"].unique()))
+
+            filtered_df = df_students.copy()
+            if class_filter != "All":
+                filtered_df = filtered_df[filtered_df["Class Type"] == class_filter]
+            if group_filter != "All":
+                filtered_df = filtered_df[filtered_df["Group"] == group_filter]
+
+            st.dataframe(filtered_df.reset_index(drop=True), use_container_width=True)
         else:
             st.info("No students registered yet.")
     else:
