@@ -21,30 +21,28 @@ with tabs[2]:
     with st.form("student_form"):
         student_name = st.text_input("👤 Student Name")
         class_type = st.selectbox("📘 Class Type", ["English", "Chess"])
-        
-        # Group options based on class
-        if class_type == "English":
-            group = st.selectbox("🏷️ Group (Standard)", ["Year 1", "Year 2", "Year 3", "Form 1", "Form 2", "Form 3"])
-        else:
-            group = st.selectbox("🏷️ Group", ["Group A", "Group B"])
-        
+        group = st.text_input("🏷️ Group (e.g., Year 1, Group A, etc.)")
+
         submit_student = st.form_submit_button("➕ Add Student")
 
     if submit_student:
-        new_student = pd.DataFrame([{
-            "Student Name": student_name.strip(),
-            "Class Type": class_type,
-            "Group": group
-        }])
+        if student_name and group:
+            new_student = pd.DataFrame([{
+                "Student Name": student_name.strip(),
+                "Class Type": class_type,
+                "Group": group.strip()
+            }])
 
-        if os.path.exists(STUDENT_FILE):
-            df_students = pd.read_csv(STUDENT_FILE)
-            df_students = pd.concat([df_students, new_student], ignore_index=True)
+            if os.path.exists(STUDENT_FILE):
+                df_students = pd.read_csv(STUDENT_FILE)
+                df_students = pd.concat([df_students, new_student], ignore_index=True)
+            else:
+                df_students = new_student
+
+            df_students.to_csv(STUDENT_FILE, index=False)
+            st.success(f"✅ {student_name} added to {class_type} - {group}")
         else:
-            df_students = new_student
-
-        df_students.to_csv(STUDENT_FILE, index=False)
-        st.success(f"✅ {student_name} added to {class_type} - {group}")
+            st.warning("⚠️ Please fill in both student name and group.")
 
     # View existing students
     if os.path.exists(STUDENT_FILE):
@@ -66,7 +64,7 @@ with tabs[0]:
         # Select class first
         class_type = st.selectbox("📘 Select Class Type", ["English", "Chess"])
         filtered_students = df_students[df_students["Class Type"] == class_type]
-        
+
         student_options = filtered_students["Student Name"].tolist()
         selected_student = st.selectbox("👤 Select Student", student_options)
 
