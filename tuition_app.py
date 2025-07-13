@@ -3,21 +3,15 @@ import pandas as pd
 from datetime import datetime
 import os
 
-# File to store data
 DATA_FILE = "tuition_payments.csv"
-
-# Set page config
 st.set_page_config(page_title="Tuition & Chess Class Tracker", layout="centered")
-
-# App title
 st.title("📚 Tuition & Chess Class Payment Tracker")
 
-# Tabs: Data Entry | Payment History
 tabs = st.tabs(["➕ Add Payment", "📋 View Payments"])
 
-# ─────────────────────────────
-# Tab 1: Form to Add Payment
-# ─────────────────────────────
+# ──────────────
+# Tab 1: Add Payment
+# ──────────────
 with tabs[0]:
     with st.form("payment_form"):
         name = st.text_input("👤 Student Name")
@@ -46,21 +40,25 @@ with tabs[0]:
         combined.to_csv(DATA_FILE, index=False)
         st.success(f"✅ Payment saved for {name}")
 
-# ─────────────────────────────
-# Tab 2: Payment History Viewer
-# ─────────────────────────────
+# ──────────────
+# Tab 2: View Payments
+# ──────────────
 with tabs[1]:
     st.subheader("📋 All Payment Records")
 
     if os.path.exists(DATA_FILE):
-        df = pd.read_csv(DATA_FILE)
+        df = pd.read_csv(DATA_FILE, parse_dates=["Date Paid"])
+        df["Month Paid"] = df["Date Paid"].dt.strftime("%B %Y")  # e.g., "July 2025"
 
         # Filters
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
+
         with col1:
-            selected_student = st.selectbox("Filter by student", ["All"] + sorted(df["Student Name"].unique().tolist()))
+            selected_student = st.selectbox("Filter by student", ["All"] + sorted(df["Student Name"].dropna().unique()))
         with col2:
             selected_class = st.selectbox("Filter by class type", ["All", "English", "Chess"])
+        with col3:
+            selected_month = st.selectbox("Filter by month", ["All"] + sorted(df["Month Paid"].dropna().unique()))
 
         # Apply filters
         filtered_df = df.copy()
@@ -68,7 +66,9 @@ with tabs[1]:
             filtered_df = filtered_df[filtered_df["Student Name"] == selected_student]
         if selected_class != "All":
             filtered_df = filtered_df[filtered_df["Class Type"] == selected_class]
+        if selected_month != "All":
+            filtered_df = filtered_df[filtered_df["Month Paid"] == selected_month]
 
-        st.dataframe(filtered_df, use_container_width=True)
+        st.dataframe(filtered_df.drop(columns=["Month Paid"]), use_container_width=True)
     else:
         st.info("No payment records found yet.")
