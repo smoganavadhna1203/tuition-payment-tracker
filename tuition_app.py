@@ -60,6 +60,15 @@ with tabs[2]:
                 filtered_df = filtered_df[filtered_df["Group"] == group_filter]
 
             st.dataframe(filtered_df.reset_index(drop=True), use_container_width=True)
+
+            # 📥 Download Button
+            csv_download = filtered_df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Download Student List (CSV)",
+                data=csv_download,
+                file_name="student_list.csv",
+                mime="text/csv"
+            )
         else:
             st.info("No students registered yet.")
     else:
